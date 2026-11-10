@@ -5,6 +5,8 @@ export interface MapConfig {
 	coordinatesProp: BasesPropertyId | null;
 	markerIconProp: BasesPropertyId | null;
 	markerColorProp: BasesPropertyId | null;
+	/** Property supplying the marker label, or null to use the note name. */
+	labelProp: BasesPropertyId | null;
 	mapHeight: number;
 	defaultZoom: number;
 	/** null when no center is configured, which is distinct from a center of [0, 0]. */
@@ -29,5 +31,6 @@ export interface MapMarker {
 export interface MapMarkerProperties {
 	entryIndex: number;
 	icon: string; // Composite image key combining icon and color
+	label: string;
 }
 

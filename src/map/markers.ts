@@ -323,10 +323,13 @@ export class MarkerManager {
 	}
 
 	private createGeoJSONFeatures(markers: MapMarker[]): Feature[] {
+		const mapConfig = this.getMapConfig();
+
 		return markers.map((markerData, index) => {
 			const properties: MapMarkerProperties = {
 				entryIndex: index,
 				icon: markerData.imageKey, // Use composite image key
+				label: this.getMarkerLabel(markerData, mapConfig),
 			};
 
 			return {
@@ -338,6 +341,17 @@ export class MarkerManager {
 				properties,
 			};
 		});
+	}
+
+	/** Uses the configured label property, falling back to the note name. */
+	private getMarkerLabel(markerData: MapMarker, mapConfig: MapConfig | null): string {
+		const customLabel = this.getStringProp(
+			markerData.entry,
+			mapConfig?.labelProp ?? null,
+			'Could not extract label'
+		);
+
+		return customLabel ?? markerData.entry.file.basename;
 	}
 
 	private addMarkerLayers(): void {
@@ -364,6 +378,43 @@ export class MarkerManager {
 				'icon-padding': 0,
 			},
 		});
+
+		this.addMarkerLabelLayer();
+	}
+
+	private addMarkerLabelLayer(): void {
+		if (!this.map) return;
+
+		const labelColor = this.resolveColor('var(--bases-map-marker-label-color)');
+		const haloColor = this.resolveColor('var(--bases-map-marker-label-halo)');
+
+		this.map.addLayer({
+			id: 'marker-labels',
+			type: 'symbol',
+			source: 'markers',
+			layout: {
+				'text-field': ['get', 'label'],
+				'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+				'text-size': [
+					'interpolate',
+					['linear'],
+					['zoom'],
+					10, 0,   // Hidden when zoomed out
+					12, 11,
+					18, 14
+				],
+				'text-offset': [0, 1.2],
+				'text-anchor': 'top',
+				'text-optional': true,
+				'text-allow-overlap': false,
+				'text-padding': 4,
+			},
+			paint: {
+				'text-color': labelColor,
+				'text-halo-color': haloColor,
+				'text-halo-width': 1.2,
+			},
+		});
 	}
 
 	/** Resolves the marker a layer event refers to, or null if it hit nothing known. */
@@ -380,17 +431,25 @@ export class MarkerManager {
 		if (!this.map || this.interactionsBound) return;
 		this.interactionsBound = true;
 
+		// Labels share the marker's interactions so both are clickable and hoverable
+		this.bindLayerInteractions('marker-pins');
+		this.bindLayerInteractions('marker-labels');
+	}
+
+	private bindLayerInteractions(layerId: string): void {
+		if (!this.map) return;
+
 		// Change cursor on hover
-		this.map.on('mouseenter', 'marker-pins', () => {
+		this.map.on('mouseenter', layerId, () => {
 			this.map?.getCanvas().addClass('is-over-marker');
 		});
 
-		this.map.on('mouseleave', 'marker-pins', () => {
+		this.map.on('mouseleave', layerId, () => {
 			this.map?.getCanvas().removeClass('is-over-marker');
 		});
 
 		// Handle hover to show popup
-		this.map.on('mouseenter', 'marker-pins', (e: MapLayerMouseEvent) => {
+		this.map.on('mouseenter', layerId, (e: MapLayerMouseEvent) => {
 			const markerData = this.markerFromEvent(e);
 			if (!markerData) return;
 
@@ -408,12 +467,12 @@ export class MarkerManager {
 		});
 
 		// Handle mouseleave to hide popup
-		this.map.on('mouseleave', 'marker-pins', () => {
+		this.map.on('mouseleave', layerId, () => {
 			this.popupManager.hidePopup();
 		});
 
 		// Handle click to open file
-		this.map.on('click', 'marker-pins', (e: MapLayerMouseEvent) => {
+		this.map.on('click', layerId, (e: MapLayerMouseEvent) => {
 			const markerData = this.markerFromEvent(e);
 			if (!markerData) return;
 
@@ -422,7 +481,7 @@ export class MarkerManager {
 		});
 
 		// Handle right-click context menu
-		this.map.on('contextmenu', 'marker-pins', (e: MapLayerMouseEvent) => {
+		this.map.on('contextmenu', layerId, (e: MapLayerMouseEvent) => {
 			e.preventDefault();
 
 			const markerData = this.markerFromEvent(e);
@@ -452,7 +511,7 @@ export class MarkerManager {
 		});
 
 		// Handle hover for link preview - similar to cards view
-		this.map.on('mouseover', 'marker-pins', (e: MapLayerMouseEvent) => {
+		this.map.on('mouseover', layerId, (e: MapLayerMouseEvent) => {
 			const markerData = this.markerFromEvent(e);
 			if (!markerData) return;
 

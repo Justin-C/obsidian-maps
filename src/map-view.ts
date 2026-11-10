@@ -424,6 +424,7 @@ export class MapView extends BasesView {
 		const coordinatesProp = this.config.getAsPropertyId('coordinates');
 		const markerIconProp = this.config.getAsPropertyId('markerIcon');
 		const markerColorProp = this.config.getAsPropertyId('markerColor');
+		const labelProp = this.config.getAsPropertyId('labelProperty');
 
 		// Load numeric configurations with validation
 		const minZoom = this.getNumericConfig('minZoom', 0, 0, 24);
@@ -475,6 +476,7 @@ export class MapView extends BasesView {
 			coordinatesProp,
 			markerIconProp,
 			markerColorProp,
+			labelProp,
 			mapHeight,
 			defaultZoom,
 			center,
@@ -720,6 +722,13 @@ export class MapView extends BasesView {
 						key: 'markerColor',
 						filter: prop => !prop.startsWith('file.'),
 						placeholder: 'Property',
+					},
+					{
+						displayName: 'Label property',
+						type: 'property',
+						key: 'labelProperty',
+						filter: prop => !prop.startsWith('file.'),
+						placeholder: 'Note name',
 					},
 				]
 			},

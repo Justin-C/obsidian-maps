@@ -2,6 +2,8 @@ body {
 	--bases-map-embed-height: 400px;
 	--bases-map-marker-background: var(--interactive-accent);
 	--bases-map-marker-icon-color: white;
+	--bases-map-marker-label-color: var(--text-normal);
+	--bases-map-marker-label-halo: var(--background-primary);
 	--bases-map-blend-mode: normal;
 }
 
